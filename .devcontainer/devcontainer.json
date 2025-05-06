@@ -1,5 +1,8 @@
 {
   "name": "PostgreSQL & pgAdmin",
+    "forwardPorts": [
+    5050
+  ],  
   "customizations": {    
     "vscode": {
       "extensions": [
