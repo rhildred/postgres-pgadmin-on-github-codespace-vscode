@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  vars:
+    db_user: lcbo
+    db_name: lcbo
+    db_password: Secret5555
+    connect_user: 'devtedsuser'
+    connect_password: 'devtedspass'
+    connect_host: 'localhost'
+  tasks:
+  - name: DROP the database specified in vars
+    postgresql_db: name={{ db_name }}
+      login_host={{ connect_host }}
+      login_user={{ connect_user }}
+      login_password={{ connect_password }}
+      template='template0'
+      state=absent
+  - name: down Docker Compose stack 
+    community.docker.docker_compose_v2:
+      project_src: '.'
+      files:
+      - docker-compose.yml
+      state: absent      
