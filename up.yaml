@@ -1,0 +1,44 @@
+---
+- hosts: localhost
+  vars:
+    db_user: lcbo
+    db_name: lcbo
+    db_password: Secret5555
+  tasks:
+  - name: Install psql client
+    become: true
+    apt: name={{ item }} update_cache=true state=latest
+    with_items:
+    - postgresql-client
+  - name: Install psycopg2 python package
+    ansible.builtin.pip:
+      name: psycopg2
+  - name: Create the database specified in vars
+    become: true
+    become_user: postgres
+    postgresql_db: name={{ db_name }}
+      template='template0'
+      state=present
+  - name: Ensure user has access to the new database
+    become: true
+    become_user: postgres
+    postgresql_user: db={{ db_name }}
+          name={{ db_user }}
+          password={{ db_password }}
+          state=present
+  - name: Ensure user does not have unnecessary permissions
+    become: true
+    become_user: postgres
+    postgresql_user: name={{ db_user }}
+         role_attr_flags=NOSUPERUSER,NOCREATEDB
+         state=present
+  - name: Download lcbo database
+    shell: "curl -o /tmp/lcboapi.tgz https://heycarsten.s3.amazonaws.com/lcboapi-2019-01-21.tgz && tar -zxvf /tmp/lcboapi.tgz --directory /tmp"
+  - name: Add some dummy data to our database
+    become: true
+    become_user: postgres
+    shell: psql {{ db_name }} < /tmp/lcboapi-2019-01-21.sql
+  - name: GRANT ALL PRIVILEGES ON DATABASE lcbo TO lcbo
+    become: true
+    become_user: postgres
+    shell: psql {{ db_name }} -c "GRANT pg_read_all_data TO lcbo"
