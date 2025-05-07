@@ -13,32 +13,44 @@
   - name: Install psycopg2 python package
     ansible.builtin.pip:
       name: psycopg2
+  - name: deploy Docker Compose stack 
+    community.docker.docker_compose_v2:
+      project_src: '.'
+      files:
+      - docker-compose.yml
+      state: present      
   - name: Create the database specified in vars
-    become: true
-    become_user: postgres
     postgresql_db: name={{ db_name }}
+      login_host='localhost'
+      login_user='devtedsuser'
+      login_password='devtedspass'
       template='template0'
       state=present
   - name: Ensure user has access to the new database
-    become: true
-    become_user: postgres
-    postgresql_user: db={{ db_name }}
-          name={{ db_user }}
-          password={{ db_password }}
-          state=present
+    postgresql_user: login_db={{ db_name }}
+      login_host='localhost'
+      login_user='devtedsuser'
+      login_password='devtedspass'
+      name={{ db_user }}
+      password={{ db_password }}
+      state=present
   - name: Ensure user does not have unnecessary permissions
-    become: true
-    become_user: postgres
-    postgresql_user: name={{ db_user }}
-         role_attr_flags=NOSUPERUSER,NOCREATEDB
-         state=present
+    postgresql_user: login_db={{ db_name }}
+      name={{ db_user }}
+      login_host='localhost'
+      login_user='devtedsuser'
+      login_password='devtedspass'
+      role_attr_flags=NOSUPERUSER,NOCREATEDB
+      state=present
   - name: Download lcbo database
     shell: "curl -o /tmp/lcboapi.tgz https://heycarsten.s3.amazonaws.com/lcboapi-2019-01-21.tgz && tar -zxvf /tmp/lcboapi.tgz --directory /tmp"
-  - name: Add some dummy data to our database
-    become: true
-    become_user: postgres
-    shell: psql {{ db_name }} < /tmp/lcboapi-2019-01-21.sql
-  - name: GRANT ALL PRIVILEGES ON DATABASE lcbo TO lcbo
-    become: true
-    become_user: postgres
-    shell: psql {{ db_name }} -c "GRANT pg_read_all_data TO lcbo"
+  - name: clean tsearch2
+    shell: "grep -v tsearch2 /tmp/lcboapi-2019-01-21.sql> /tmp/lcboapi-clean.sql"
+  - name: Restore dump
+    postgresql_db: name={{ db_name }}
+      login_host='localhost'
+      login_user={{ db_user }}
+      login_password={{ db_password }}
+      template='template0'
+      state='restore'
+      target='/tmp/lcboapi-clean.sql'
