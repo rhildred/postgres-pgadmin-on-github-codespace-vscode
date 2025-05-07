@@ -2,7 +2,8 @@
   "name": "PostgreSQL & pgAdmin",
     "forwardPorts": [
     5050
-  ],  
+  ],
+  "postCreateCommand": "pip3 install --user ansible",
   "customizations": {    
     "vscode": {
       "extensions": [
